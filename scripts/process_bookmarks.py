@@ -37,8 +37,6 @@ def main():
 
     existingDB = "../data/bookmarks.db.json"
 
-    marks = ''
-    existingBookmarks = None
     if Path(existingDB).exists():
         try:
             marks = json.load(open(existingDB, encoding='utf-8'))
@@ -55,6 +53,7 @@ def main():
         columns += ["siteTitle", "siteIcon", "category", "domain", 'articleTitle']
         existingBookmarks = pd.DataFrame(columns=columns)
 
+    promptString = "Category [A] AI/ML, [S] Software, [D] DELETE, [O] Other [Q] Quit):> [A] "
     categoryType = CategoricalDtype(categories=["A", "S", "O", "D"], ordered=True)
     existingBookmarks["category"] = existingBookmarks["category"].astype(categoryType)
 
@@ -118,15 +117,13 @@ def main():
         mark['siteTitle'] = domains[domain]['siteTitle']
         mark['articleTitle'] = getTitle(mark['bmkUri'])
 
-
         print(f"Site: {urlparse(mark['bmkUri']).scheme}://{domain}/ -[{xmark}]")
         print(f"SiteTitle: {mark['siteTitle']}")
         print(f"Title: {mark['articleTitle']}")
 
-
         category = ''
         while not category:
-            c = input('Category [A] AI/ML, [S] Software, [D] DELETE, [O] Other [Q] Quit):> [A] ').upper()
+            c = input(f"{promptString} ").upper()
             if c not in ['', 'A', 'S', 'O', 'Q', 'D']:
                 continue
             if c == '':
@@ -137,14 +134,12 @@ def main():
 
         mark['category'] = category
 
-
         # update the bookmarks db (in memory) with new values
         existingBookmarks.loc[i] = mark
 
     # save the changes
     existingBookmarks.reset_index(inplace=True)
     existingBookmarks.to_json(existingDB)
-
 
 
 if __name__ == '__main__':
