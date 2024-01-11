@@ -45,11 +45,15 @@ def main():
             print("Loading marks")
             existingBookmarks = pd.DataFrame(marks)
         except json.decoder.JSONDecodeError as e:
-            # starting with empty bookmarksmarks db
-            print("Generating marks")
-            columns = list(incomingBookmarks.columns.values)
-            columns += ["siteTitle", "siteIcon", "category", "domain", 'articleTitle']
-            existingBookmarks = pd.DataFrame(columns=columns)
+            # need to troubleshoot the error, adjust data or code
+            print(f"Failed to load existing bookmarks file: {e}")
+            exit(-1)
+    else:
+        # starting with empty bookmarksmarks db
+        print("Generating marks")
+        columns = list(incomingBookmarks.columns.values)
+        columns += ["siteTitle", "siteIcon", "category", "domain", 'articleTitle']
+        existingBookmarks = pd.DataFrame(columns=columns)
 
     categoryType = CategoricalDtype(categories=["A", "S", "O", "D"], ordered=True)
     existingBookmarks["category"] = existingBookmarks["category"].astype(categoryType)
