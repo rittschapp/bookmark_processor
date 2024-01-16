@@ -28,7 +28,6 @@ def main():
 
         # add all new bookmarks to the bookmark set
         existingBookmarks = pd.concat([existingBookmarks, newBookmarks])
-        print(existingBookmarks.tail())
 
     processBookmarks(existingBookmarks)
 
