@@ -15,6 +15,27 @@ promptString = "Category [A] AI/ML, [S] Software, [D] DELETE, [O] Other [Q] Quit
 categories=["A", "S", "O", "D"]
 
 
+def main():
+
+    incomingBookmarks = loadIncomingBookmarks()
+
+    existingBookmarks = loadExistingBookmarks(incomingBookmarks)
+
+    # exclude not new
+    newBookmarks = incomingBookmarks[~incomingBookmarks['key'].isin(existingBookmarks['key'].values)]
+    if not newBookmarks.empty:
+        print(f"Found {len(newBookmarks)} new bookmarks to add")
+
+        # add all new bookmarks to the bookmark set
+        existingBookmarks = pd.concat([existingBookmarks, newBookmarks])
+        print(existingBookmarks.tail())
+
+    processBookmarks(existingBookmarks)
+
+    # save the changes
+    existingBookmarks.to_json(existingBookmarksFile)
+
+
 def getTitle(site):
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0'}
@@ -144,27 +165,6 @@ def loadExistingBookmarks(incomingBookmarks):
     categoryType = CategoricalDtype(categories=categories, ordered=True)
     marks["category"] = marks["category"].astype(categoryType)
     return marks
-
-
-def main():
-
-    incomingBookmarks = loadIncomingBookmarks()
-
-    existingBookmarks = loadExistingBookmarks(incomingBookmarks)
-
-    # remove all bookmarks previously processed
-    newBookmarks = incomingBookmarks[~incomingBookmarks['key'].isin(existingBookmarks['key'].values)]
-    if not newBookmarks.empty:
-        print(f"Found {len(newBookmarks)} new bookmarks to add")
-
-        # add all new bookmarks to the bookmark set
-        existingBookmarks = pd.concat([existingBookmarks, newBookmarks])
-        print(existingBookmarks.tail())
-
-    processBookmarks(existingBookmarks)
-
-    # save the changes
-    existingBookmarks.to_json(existingBookmarksFile)
 
 
 if __name__ == '__main__':
