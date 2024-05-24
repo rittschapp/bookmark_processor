@@ -1,0 +1,27 @@
+
+- process file and save processing to latest file
+    * could be improved (ie loop crash)
+        - input input input !  <-.
+        - crash  ----------------`
+
+- publish latest file to URL
+- re-arrange input w/ title at top
+
+
+
+blinken biden dictator cringe :)
+
+
+- add a ui to manage.
+- space bar to log/turf entry (AKA Delete [D]) ? NO
+- delete all bits from 'deleted' other than key to save space
+- publish the extract of categories et al. Yee haw!
+
+Going through it:
+
+ - "just a moment"...
+  - this blocks one or more of the fields and cannot be automated.
+  - use site title and title if available
+  - fill in new site titles as they come
+  - site title may not correspond!!!
+  -
