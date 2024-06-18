@@ -1,0 +1,1 @@
+npx http-server --verbose --cors -p 3001 ./data

@@ -1,18 +1,25 @@
 import json
 import os
+from datetime import datetime
 
 import pandas as pd
 import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
 import requests
+import favicon
 from lxml.html import fromstring
 from pandas import CategoricalDtype
 
+''' file as provided by firefox about:sync plug-in, currently downloaded manually. '''
 incomingBookmarksFile = "../data/bookmarks.json"
+
+''' the raw dataframe file with all bookmarks from previous incoming file'''
 existingBookmarksFile = "../data/bookmarks.db.json"
-promptString = "Category [A] AI/ML, [S] Software, [D] DELETE, [O] Other [Q] Quit):> [A] "
-categories=["A", "S", "O", "D"]
+
+''' categories - need to break this out some more to include security '''
+promptString = "Category [A] AI/ML, [S] Software, [X] Security, [D] DELETE, [O] Other [Q] Quit):> [A] "
+categories = ["A", "S", "X", "O", "D"]
 
 
 def main():
@@ -33,6 +40,9 @@ def main():
 
     # save the changes
     existingBookmarks.to_json(existingBookmarksFile)
+    existingBookmarks.to_json(f"{existingBookmarksFile}.pub", orient='records');
+
+
 
 
 def getTitle(site):
@@ -51,7 +61,10 @@ def getTitle(site):
 def processBookmarks(existingBookmarks):
 
     # process all new bookmarks (and any that have not been processed before)
-    bookmarksToProcess = existingBookmarks[existingBookmarks['category'].isna()]
+    bookmarksToProcess = existingBookmarks[
+        (existingBookmarks['category'].isna()) |
+        (existingBookmarks['category'] == 'S')
+    ]
 
     existingBookmarks.set_index(['key'], inplace=True)
     bookmarksToProcess.set_index(['key'], inplace=True)
@@ -67,19 +80,23 @@ def processBookmarks(existingBookmarks):
         xmark = 'X'
         uri = urlparse(mark['bmkUri'])
         domain = uri.netloc
+        '''  TODO - they always say do not modify things "in place" '''
         mark['domain'] = domain
 
         if domain not in siteInfo:
             xmark = ''
             siteInfo[domain] = getNewSiteInfo(uri)
 
+        print(type(mark))
+
         mark['siteIcon'] = siteInfo[domain]['siteIcon']
         mark['siteTitle'] = siteInfo[domain]['siteTitle']
         mark['articleTitle'] = getTitle(mark['bmkUri'])
 
-        print(f"Site: {urlparse(mark['bmkUri']).scheme}://{domain}/ -[{xmark}]")
-        print(f"SiteTitle: {mark['siteTitle']}")
-        print(f"Title: {mark['articleTitle']}")
+        print(f"Site       : {urlparse(mark['bmkUri']).scheme}://{domain}/ -[{xmark}]")
+        print(f"SiteTitle  : {mark['siteTitle']}")
+        print(f"Title      : {mark['articleTitle']}")
+        print(f"Bookmarked : {mark['dateAdded']}")
 
         category = ''
         while not category:
@@ -101,17 +118,17 @@ def processBookmarks(existingBookmarks):
 
 
 def getNewSiteInfo(uri):
+    print(f"Getting new site info {uri}");
     domain = uri.netloc
     site = f"{uri.scheme}://{domain}/"
     siteInfo = {'siteTitle': getTitle(site), 'siteIcon': ''}
-    # could get more robust and look for alt icons
-    iconFile = site + "favicon.ico"
     try:
-        if requests.head(iconFile).status_code == 200:
-            siteInfo['siteIcon'] = iconFile
+        siteImage = favicon.get(f"https://{domain}")[0]
+        siteInfo['siteIcon'] = siteImage.url
     except requests.exceptions.ConnectionError as e:
-        print(f"Error retrieving site Icon {iconFile}\n\n{e}")
+        print(f"Error retrieving site image {domain}\n\n{e}")
     return siteInfo
+
 
 def loadExistingSiteInfo(existingBookmarks):
     # gather the site info for existing bookmarks
@@ -119,7 +136,7 @@ def loadExistingSiteInfo(existingBookmarks):
 
     for domain in existingBookmarks['domain']:
         if domain is None or pd.isna(domain):
-            continue
+            continue            
 
         # load site info from an existing record
         domainInfo = existingBookmarks.loc[existingBookmarks['domain'] == domain].iloc[0]
@@ -139,6 +156,25 @@ def loadIncomingBookmarks():
     incomingBookmarks = pd.DataFrame(marks)
     incomingBookmarks = incomingBookmarks.loc[incomingBookmarks['parentName'] == 'mobile']
     incomingBookmarks = incomingBookmarks[['bmkUri', 'title', 'dateAdded']]
+
+    print(f"The string before: {incomingBookmarks.loc[0]['dateAdded']}")
+    #print(f"Type: {incomingBookmarks['dateAdded']}.type")
+
+    incomingBookmarks['dateAdded'] = incomingBookmarks['dateAdded'].astype("int")
+
+    print(f"The string after: {incomingBookmarks.loc[0]['dateAdded']}")
+
+
+
+    print(datetime.fromtimestamp(incomingBookmarks.loc[0]['dateAdded']))
+    
+
+    print(f"The string after: {incomingBookmarks.loc[0]['dateAdded']}")
+    print(datetime.fromtimestamp(incomingBookmarks.loc[0]['dateAdded']))
+
+    exit()
+    
+    
     key = incomingBookmarks['bmkUri'].apply(lambda x: hashlib.sha256(x.encode('UTF-8')).hexdigest())
     incomingBookmarks.insert(0, "key", key)
     return incomingBookmarks
@@ -163,6 +199,7 @@ def loadExistingBookmarks(incomingBookmarks):
     marks["domain"] = marks["domain"].astype("string")
     categoryType = CategoricalDtype(categories=categories, ordered=True)
     marks["category"] = marks["category"].astype(categoryType)
+    marks['dateAdded'] = marks['dateAdded'].astype('int')
     return marks
 
 
