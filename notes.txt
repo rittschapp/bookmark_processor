@@ -1,3 +1,36 @@
+Environment variables
+
+AWS_ENCRYPTED_ACCESS_CREDS
+
+The access creds that are encrypted. The decrypted string is expected in the format:
+
+aws_access_key_id=<ACCESS_KEY>:aws_secret_access_key=<SECRET_KEY>
+
+The passphrase for the encryption will be required to decrypt the
+creds. Please see your administrator if you require the passphrase.
+Do NOT store the passphrase on any media!
+
+
+The file is published to Public bucket:
+
+https://rittscher-site-reading-db.s3.amazonaws.com/bookmarks.db.json.pub
+
+
+
+
+
+
+
+
+
+
+!
+The packages that are used in this project are not sourced from the
+node_modules directory for some reason. What caused this project to
+be set up incorrectly? How to get it to recognize the libraries in
+node_modules?
+!
+
 
 - process file and save processing to latest file
     * could be improved (ie loop crash)
@@ -6,10 +39,6 @@
 
 - publish latest file to URL
 - re-arrange input w/ title at top
-
-
-
-blinken biden dictator cringe :)
 
 
 - add a ui to manage.

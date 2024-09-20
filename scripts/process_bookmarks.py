@@ -10,6 +10,8 @@ import requests
 import favicon
 from lxml.html import fromstring
 from pandas import CategoricalDtype
+import boto3
+import base64
 
 ''' file as provided by firefox about:sync plug-in, currently downloaded manually. '''
 incomingBookmarksFile = "../data/bookmarks.json"
@@ -21,6 +23,7 @@ existingBookmarksFile = "../data/bookmarks.db.json"
 promptString = "Category [A] AI/ML, [F] Software, [E] Security, [D] DELETE, [O] Other [Q] Quit):> [A] "
 # 'X' is internal error while trying to retrieve link info - to be managed manually later
 categories = ["A", "F", "E", "O", "D", "X"]
+public_categories = ["A", "F", "E"]
 
 
 def main():
@@ -45,7 +48,33 @@ def main():
 
     # save the changes
     existingBookmarks.to_json(existingBookmarksFile)
-    existingBookmarks.to_json(f"{existingBookmarksFile}.pub", orient='records')
+    publishBookmarksToPublicS3Bucket(existingBookmarks)
+
+
+def publishBookmarksToPublicS3Bucket(bookmarks):
+    key = input("Enter decrypt passphrase to publish (hit enter to abort): ")
+    if key:
+        publishBookmarks(getAWSAccessCreds(key), bookmarks)
+
+
+def getAWSAccessCreds(key):
+    from cryptography.fernet import Fernet
+    c = Fernet(base64.urlsafe_b64encode(key.zfill(32).encode()))
+    creds = c.decrypt(os.environ['aws_encrypted_access_creds']).decode()
+    return dict(item.split("=") for item in creds.split(":"))
+
+
+def publishBookmarks(aws_access_creds, bookmarks_df):
+    public_bookmarks = bookmarks_df.loc[bookmarks_df['category'].isin(public_categories)]
+    public_bookmarks = public_bookmarks.to_json(orient='records')
+    s3 = boto3.Session(
+        aws_access_key_id=aws_access_creds['aws_access_key_id'],
+        aws_secret_access_key=aws_access_creds['aws_secret_access_key']
+    ).resource('s3')
+    bookmarksObject = s3.Object('rittscher-site-reading-db', 'bookmarks.db.json.pub')
+    bookmarksObject.put(Body=public_bookmarks)
+    print("Bookmarks published")
+
 
 
 def processBookmarks(existingBookmarks):
@@ -85,7 +114,7 @@ def processBookmarks(existingBookmarks):
 
             mark['siteIcon'] = siteInfo[domain]['siteIcon']
             mark['siteTitle'] = siteInfo[domain]['siteTitle']
-            mark['articleTitle'] = getTitle(mark['bmkUri'])
+            mark['articleTitle'] = mark['title']
 
             print(f"Site       : {urlparse(mark['bmkUri']).scheme}://{domain}/ -[{xmark}]")
             print(f"SiteTitle  : {mark['siteTitle']}")
