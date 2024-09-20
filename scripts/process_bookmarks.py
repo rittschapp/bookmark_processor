@@ -19,8 +19,8 @@ incomingBookmarksFile = "../data/bookmarks.json"
 ''' the raw dataframe file with all bookmarks from previous incoming file'''
 existingBookmarksFile = "../data/bookmarks.db.json"
 
-''' categories - need to break this out some more to include security '''
 promptString = "Category [A] AI/ML, [F] Software, [E] Security, [D] DELETE, [O] Other [Q] Quit):> [A] "
+
 # 'X' is internal error while trying to retrieve link info - to be managed manually later
 categories = ["A", "F", "E", "O", "D", "X"]
 public_categories = ["A", "F", "E"]
@@ -76,13 +76,9 @@ def publishBookmarks(aws_access_creds, bookmarks_df):
     print("Bookmarks published")
 
 
-
 def processBookmarks(existingBookmarks):
     # process all new bookmarks (and any that have not been processed before)
-    bookmarksToProcess = existingBookmarks[
-        (existingBookmarks['category'].isna()) |
-        (existingBookmarks['category'] == 'S')
-        ]
+    bookmarksToProcess = existingBookmarks[existingBookmarks['category'].isna()]
 
     existingBookmarks.set_index(['key'], inplace=True)
     bookmarksToProcess.set_index(['key'], inplace=True)
